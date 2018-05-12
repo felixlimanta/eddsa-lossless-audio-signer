@@ -102,3 +102,10 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Audio test files
+*.wav
+*.mp3
+*.aac
+*.ogg
+*.flac
