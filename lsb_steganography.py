@@ -1,6 +1,6 @@
-import argparse
 import sys
 from pydub import AudioSegment
+
 
 class AudioLSB:
     mask = bytes([128, 64, 32, 16, 8, 4, 2, 1])
@@ -29,20 +29,23 @@ class AudioLSB:
             base_index = i * 8 * self.sample_width
             if self.endianness:
                 base_index += self.sample_width - 1
-            
+
             for j in range(0, 8):
                 audio_index = base_index + j * self.sample_width
 
                 if message[i] & 1 << (7 - j):
-                    self.audio_data[audio_index] = self.setLSB(self.audio_data[audio_index])
+                    self.audio_data[audio_index] = self.setLSB(
+                        self.audio_data[audio_index])
                 else:
-                    self.audio_data[audio_index] = self.clearLSB(self.audio_data[audio_index])
-                
+                    self.audio_data[audio_index] = self.clearLSB(
+                        self.audio_data[audio_index])
+
             if i == message_size - 1:
                 for j in range(8, 16):
                     audio_index = base_index + j * self.sample_width
-                    self.audio_data[audio_index] = self.clearLSB(self.audio_data[audio_index])
-                        
+                    self.audio_data[audio_index] = self.clearLSB(
+                        self.audio_data[audio_index])
+
     def decode(self, length=None):
         message = bytearray(b'')
         audio_length = len(self.audio_data)
@@ -54,7 +57,7 @@ class AudioLSB:
         end_index = audio_length
         if length is not None:
             end_index = start_index + 8 * self.sample_width * length
-        
+
         for i in range(start_index, end_index, 8 * self.sample_width):
             b = 0
 
@@ -65,35 +68,45 @@ class AudioLSB:
                     b = self.setLSB(b)
                 else:
                     b = self.clearLSB(b)
-        
+
             if length is not None and b == 0:
                 break
-            
+
             message.append(b)
 
         return bytes(message)
-            
+
     def setLSB(self, val):
         return val | 1
-    
+
     def clearLSB(self, val):
         return val & ~(1)
 
+
 def main():
-    parser = argparse.ArgumentParser(conflict_handler='resolve', description='LSB Audio Steganography')
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        conflict_handler='resolve', description='LSB Audio Steganography')
 
     action = parser.add_mutually_exclusive_group()
-    action.add_argument('-e', action='store_true', dest='encode', help='Set to encode message')
-    action.add_argument('-d', action='store_true', dest='decode', help='Set to decode message')
+    action.add_argument('-e', action='store_true',
+                        dest='encode', help='Set to encode message')
+    action.add_argument('-d', action='store_true',
+                        dest='decode', help='Set to decode message')
 
     encode_group = parser.add_argument_group('Encode options')
-    encode_group.add_argument('-i', action='store', dest='input_path', help='Input file path')
-    encode_group.add_argument('-o', action='store', dest='output_path', help='Output file path')
-    encode_group.add_argument('-m', action='store', dest='message', help='Message to encode')
+    encode_group.add_argument('-i', action='store',
+                              dest='input_path', help='Input file path')
+    encode_group.add_argument('-o', action='store',
+                              dest='output_path', help='Output file path')
+    encode_group.add_argument('-m', action='store',
+                              dest='message', help='Message to encode')
 
     decode_group = parser.add_argument_group('Decode options')
-    decode_group.add_argument('-i', action='store', dest='input_path', help='Input file path')
-    
+    decode_group.add_argument('-i', action='store',
+                              dest='input_path', help='Input file path')
+
     args = parser.parse_args()
 
     if args.encode:
@@ -105,6 +118,7 @@ def main():
         print(audio_lsb.decode().decode('utf-8'))
     else:
         raise argparse.ArgumentTypeError('Either -e or -d has to be set')
+
 
 if __name__ == "__main__":
     main()
