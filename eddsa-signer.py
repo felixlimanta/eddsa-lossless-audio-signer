@@ -32,7 +32,7 @@ class AudioSigner:
 
         if verifying_key_path is not None:
             keydata = open(verifying_key_path, 'rb').read()
-            verifying_key = ed25519.SigningKey(keydata)
+            verifying_key = ed25519.VerifyingKey(keydata)
 
         self.set_keys(signing_key=signing_key, verifying_key=verifying_key)
 
@@ -51,13 +51,65 @@ class AudioSigner:
 
         audio_lsb.encode(self.lsb_normalizer)
         try:
-            self.verifying_key.verify(signature, audio_lsb.audio_data)
+            self.verifying_key.verify(signature, bytes(audio_lsb.audio_data))
             return True
         except ed25519.BadSignatureError:
             return False
 
+
+def _main_generate_keys(args):
+    audio_signer = AudioSigner()
+    audio_signer.generate_keys()
+    audio_signer.export_keys(
+        signing_key_path=args.signing_key_path, verifying_key_path=args.verifying_key_path)
+
+
+def _main_sign(args):
+    audio_signer = AudioSigner()
+    audio_signer.import_keys(signing_key_path=args.signing_key_path)
+    audio_signer.sign(args.input_path, args.output_path)
+
+
+def _main_verify(args):
+    audio_signer = AudioSigner()
+    audio_signer.import_keys(verifying_key_path=args.verifying_key_path)
+    print(audio_signer.verify(args.input_path))
+
+
 def main():
-    print('Hello')
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Lossless audio EdDSA digital signer')
+    subparsers = parser.add_subparsers(help='Commands')
+
+    # Generate keys
+    keys_parser = subparsers.add_parser('keys', help='Key generation')
+    keys_parser.add_argument(
+        '-sk', action='store', dest='signing_key_path', help='Signing key output path')
+    keys_parser.add_argument(
+        '-vk', action='store', dest='verifying_key_path', help='Verifying key output path')
+    keys_parser.set_defaults(func=_main_generate_keys)
+
+    # Sign
+    sign_parser = subparsers.add_parser('sign', help='Audio signing')
+    sign_parser.add_argument('-i', action='store',
+                             dest='input_path', help='Audio input path')
+    sign_parser.add_argument('-o', action='store',
+                             dest='output_path', help='Audio output path')
+    sign_parser.add_argument(
+        '-sk', action='store', dest='signing_key_path', help='Signing key input path')
+    sign_parser.set_defaults(func=_main_sign)
+
+    # Verify
+    verify_parser = subparsers.add_parser('verify', help='Audio verification')
+    verify_parser.add_argument(
+        '-i', action='store', dest='input_path', help='Audio input path')
+    verify_parser.add_argument(
+        '-vk', action='store', dest='verifying_key_path', help='Verifying key input path')
+    verify_parser.set_defaults(func=_main_verify)
+
+    args = parser.parse_args()
+    args.func(args)
 
 
 if __name__ == "__main__":

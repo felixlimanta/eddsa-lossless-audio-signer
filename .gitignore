@@ -1,3 +1,14 @@
+# Audio test files
+*.wav
+*.mp3
+*.aac
+*.ogg
+*.flac
+
+# Test keys
+*.pub
+*.pri
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -102,10 +113,3 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-
-# Audio test files
-*.wav
-*.mp3
-*.aac
-*.ogg
-*.flac
