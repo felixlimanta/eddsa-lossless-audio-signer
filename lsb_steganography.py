@@ -69,7 +69,7 @@ class AudioLSB:
                 else:
                     b = self.clearLSB(b)
 
-            if length is not None and b == 0:
+            if length is None and b == 0:
                 break
 
             message.append(b)
@@ -83,41 +83,41 @@ class AudioLSB:
         return val & ~(1)
 
 
+def _main_encode(args):
+    audio_lsb = AudioLSB(args.input_path)
+    audio_lsb.encode(args.message.encode('utf-8'))
+    audio_lsb.export(args.output_path)
+
+
+def _main_decode(args):
+    audio_lsb = AudioLSB(args.input_path)
+    print(audio_lsb.decode(length=None).decode('utf-8'))
+
+
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(
-        conflict_handler='resolve', description='LSB Audio Steganography')
+    parser = argparse.ArgumentParser(description='LSB Audio Steganography')
+    subparsers = parser.add_subparsers(help='Commands')
 
-    action = parser.add_mutually_exclusive_group()
-    action.add_argument('-e', action='store_true',
-                        dest='encode', help='Set to encode message')
-    action.add_argument('-d', action='store_true',
-                        dest='decode', help='Set to decode message')
+    encode_parser = subparsers.add_parser(
+        'encode', help='Encode message in audio')
+    encode_parser.add_argument(
+        '-i', action='store', dest='input_path', help='Audio input path')
+    encode_parser.add_argument(
+        '-o', action='store', dest='output_path', help='Encoded audio output path')
+    encode_parser.add_argument(
+        '-m', action='store', dest='message', help='Message to encode')
+    encode_parser.set_defaults(func=_main_encode)
 
-    encode_group = parser.add_argument_group('Encode options')
-    encode_group.add_argument('-i', action='store',
-                              dest='input_path', help='Input file path')
-    encode_group.add_argument('-o', action='store',
-                              dest='output_path', help='Output file path')
-    encode_group.add_argument('-m', action='store',
-                              dest='message', help='Message to encode')
-
-    decode_group = parser.add_argument_group('Decode options')
-    decode_group.add_argument('-i', action='store',
-                              dest='input_path', help='Input file path')
+    decode_parser = subparsers.add_parser(
+        'decode', help='Decode message in audio')
+    decode_parser.add_argument(
+        '-i', action='store', dest='input_path', help='Encoded audio input path')
+    decode_parser.set_defaults(func=_main_decode)
 
     args = parser.parse_args()
-
-    if args.encode:
-        audio_lsb = AudioLSB(args.input_path)
-        audio_lsb.encode(args.message.encode('utf-8'))
-        audio_lsb.export(args.output_path)
-    elif args.decode:
-        audio_lsb = AudioLSB(args.input_path)
-        print(audio_lsb.decode().decode('utf-8'))
-    else:
-        raise argparse.ArgumentTypeError('Either -e or -d has to be set')
+    args.func(args)
 
 
 if __name__ == "__main__":
