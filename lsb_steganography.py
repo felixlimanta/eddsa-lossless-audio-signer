@@ -43,15 +43,19 @@ class AudioLSB:
                     audio_index = base_index + j * self.sample_width
                     self.audio_data[audio_index] = self.clearLSB(self.audio_data[audio_index])
                         
-    def decode(self):
+    def decode(self, length=None):
         message = bytearray(b'')
         audio_length = len(self.audio_data)
 
         start_index = 0
         if self.endianness:
             start_index = self.sample_width - 1
+
+        end_index = audio_length
+        if length is not None:
+            end_index = start_index + 8 * self.sample_width * length
         
-        for i in range(start_index, audio_length, 8 * self.sample_width):
+        for i in range(start_index, end_index, 8 * self.sample_width):
             b = 0
 
             for j in range(0, 8 * self.sample_width, self.sample_width):
@@ -62,7 +66,7 @@ class AudioLSB:
                 else:
                     b = self.clearLSB(b)
         
-            if b == 0:
+            if length is not None and b == 0:
                 break
             
             message.append(b)
@@ -82,7 +86,7 @@ def main():
     action.add_argument('-e', action='store_true', dest='encode', help='Set to encode message')
     action.add_argument('-d', action='store_true', dest='decode', help='Set to decode message')
 
-    encode_group = parser.add_argument_group('Encode options:')
+    encode_group = parser.add_argument_group('Encode options')
     encode_group.add_argument('-i', action='store', dest='input_path', help='Input file path')
     encode_group.add_argument('-o', action='store', dest='output_path', help='Output file path')
     encode_group.add_argument('-m', action='store', dest='message', help='Message to encode')
@@ -96,9 +100,11 @@ def main():
         audio_lsb = AudioLSB(args.input_path)
         audio_lsb.encode(args.message.encode('utf-8'))
         audio_lsb.export(args.output_path)
-    else:
+    elif args.decode:
         audio_lsb = AudioLSB(args.input_path)
         print(audio_lsb.decode().decode('utf-8'))
+    else:
+        raise argparse.ArgumentTypeError('Either -e or -d has to be set')
 
 if __name__ == "__main__":
     main()
