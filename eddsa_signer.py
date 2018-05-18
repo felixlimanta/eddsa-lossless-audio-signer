@@ -1,6 +1,7 @@
 import ed25519
 from lsb_steganography import AudioLSB
-
+import math
+from gmpy2 import divm
 
 class AudioSigner:
     lsb_normalizer = bytes([0] * 64)
@@ -10,10 +11,27 @@ class AudioSigner:
 
     def export_keys(self, signing_key_path=None, verifying_key_path=None):
         if signing_key_path is not None:
-            open(signing_key_path, 'wb').write(self.signing_key.to_bytes())
+            open(signing_key_path, 'wb').write(self.signing_key.to_seed())
+            print("Signing key seed: %d" % int.from_bytes(self.signing_key.to_seed(), byteorder='little'))
+            print("Signing key seed: ", self.signing_key.to_ascii(encoding='base64'))
 
         if verifying_key_path is not None:
             open(verifying_key_path, 'wb').write(self.verifying_key.to_bytes())
+            vk = self.verifying_key.to_bytes()
+            print("Verifying key: ", self.verifying_key.to_ascii(encoding='base64'))
+            print("Verifying key: %d" % int.from_bytes(vk, byteorder='little'))
+            parity = vk[-1] >> 7
+            print("Parity bit: %d" % parity)
+            y = bytearray(vk)
+            y[-1] &= 0b01111111
+            y = int.from_bytes(bytes(y), byteorder='little')
+            print("Actual y value: %d" % y)
+            d = 37095705934669439343138083508754565189542113879843219016388785533085940283555
+            p = pow(2, 255) - 19
+            x = math.sqrt(divm((y ** 2 - 1), ((d * y) ** 2 + 1), p))
+            if parity == 1:
+                x *= -1
+            print("Actual x value: %d" % x)
 
     def set_keys(self, signing_key=None, verifying_key=None):
         if signing_key is not None:
